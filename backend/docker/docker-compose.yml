@@ -1,0 +1,5 @@
+backend:
+  build:
+    context: .
+    dockerfile: ./docker/Dockerfile.backend # <-- вот эта строка
+  # ... остальные настройки
