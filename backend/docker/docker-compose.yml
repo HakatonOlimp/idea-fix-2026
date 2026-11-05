@@ -1,5 +1,23 @@
-backend:
-  build:
-    context: .
-    dockerfile: ./docker/Dockerfile.backend # <-- вот эта строка
-  # ... остальные настройки
+version: '3'
+services:
+  backend:
+    # Указываем путь к файлу сборки
+    build:
+      context: ./backend/
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:80" # Порт контейнера должен совпадать с CMD в Dockerfile
+    volumes:
+      - ./backend:/app # Синхронизация кода
+    restart: always
+
+  frontend:
+    image: nginx:alpine # Простой веб-сервер
+    volumes:
+      - type: bind
+        source: ./frontend
+        target: /usr/share/nginx/html # Куда Nginx смотрит за файлами
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
