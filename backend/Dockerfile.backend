@@ -1,0 +1,18 @@
+# Используем легковесный образ Python
+FROM python:3.11-slim-bullseye
+
+# Устанавливаем зависимости для Linux
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc libpq-dev && \
+    rm -rf /var/lib/apt/lists/*
+
+# Копируем наш код в контейнер
+WORKDIR /app
+COPY . .
+
+# Устанавливаем библиотеки
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# Запуск приложения
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
