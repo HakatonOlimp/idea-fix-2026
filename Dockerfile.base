@@ -1,0 +1,18 @@
+FROM python:3.11-slim-bullseye AS base
+
+WORKDIR /app
+
+# Копируем requirements.txt и ставим зависимости
+COPY requirements.txt .
+# Зеркало убрано — теперь качает с обычного PyPI
+RUN pip install --no-cache-dir -r requirements.txt
+
+# ⚠️ САМОЕ ВАЖНОЕ: Копируем ВСЕ файлы проекта внутрь контейнера
+# Без этой строки Uvicorn не найдёт main.py
+COPY . .
+
+# Healthcheck для ожидания базы данных
+HEALTHCHECK CMD pg_isready -U myuser -d olympiad_db || exit 1
+
+# Запуск
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
