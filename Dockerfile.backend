@@ -1,0 +1,16 @@
+FROM python:3.11-slim-bullseye AS base
+
+WORKDIR /app
+
+# Копируем ТОЛЬКО requirements.txt из корня проекта (context: .)
+COPY requirements.txt .
+
+ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
+ENV PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Ждём базу данных через healthcheck PostgreSQL
+HEALTHCHECK CMD pg_isready -U myuser -d olympiad_db || exit 1
+
+# Запускаем Uvicorn напрямую после проверки базы
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
