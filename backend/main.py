@@ -1,30 +1,25 @@
+from fastapi.responses import FileResponse
+
 import os
 import random
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import Optional
+from pydantic import BaseModel
 
 from database import get_db, Base, engine
 from models import User, Olympiad, Participation
-
 from routers import auth, cabinets, profile
-
-from pydantic import BaseModel
-
 
 class ProfileUpdate(BaseModel):
     class_grade: str | None = None
-
 
 class RegisterRequest(BaseModel):
     email: str
     password: str
     role: str = "student"
     class_grade: Optional[str] = None
-
 
 Base.metadata.create_all(bind=engine)
 
@@ -42,7 +37,6 @@ app.include_router(auth.router, prefix="/api/auth")
 app.include_router(cabinets.router, prefix="/api/cabinets")
 app.include_router(profile.router, prefix="/api")
 
-
 @app.get("/geo/districts")
 def get_districts():
     return [
@@ -50,7 +44,6 @@ def get_districts():
         {"name": "Западный"}, {"name": "Восточный"}, {"name": "Пригородный"},
         {"name": "Заречный"}, {"name": "Лесной"}, {"name": "Степной"}, {"name": "Горный"}
     ]
-
 
 @app.post("/auth/register")
 async def register(data: RegisterRequest, db: Session = Depends(get_db)):
@@ -80,8 +73,6 @@ async def register(data: RegisterRequest, db: Session = Depends(get_db)):
         }
     }
 
-
-# --- НОВЫЙ РОУТ: СОХРАНЕНИЕ КЛАССА (для кнопки в React) ---
 @app.post("/api/profile/save")
 async def save_profile(data: ProfileUpdate, user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
@@ -102,7 +93,6 @@ async def save_profile(data: ProfileUpdate, user_id: int, db: Session = Depends(
             "class_grade": user.class_grade,
         },
     }
-
 
 @app.get("/profile/student")
 async def student_profile(user_id: int, db: Session = Depends(get_db)):
@@ -171,12 +161,11 @@ async def student_profile(user_id: int, db: Session = Depends(get_db)):
         }
     }
 
-
 @app.post("/teacher/load-results")
 async def teacher_load_results(db: Session = Depends(get_db)):
     students = db.query(User).filter(User.role == "student").all()
     olympiads = db.query(Olympiad).all()
-    
+
     if not olympiads:
         new_olymp = Olympiad(title="Тестовая олимпиада", subject="all")
         db.add(new_olymp)
@@ -189,7 +178,7 @@ async def teacher_load_results(db: Session = Depends(get_db)):
     for student in students:
         existing_part = db.query(Participation).filter(
             Participation.user_id == student.id, 
-            Participation.olympiad_id == olympp_id
+            Participation.olympiad_id == olymp_id
         ).first()
 
         if not existing_part:
@@ -208,10 +197,8 @@ async def teacher_load_results(db: Session = Depends(get_db)):
     db.commit()
     return {"status": "ok", "message": f"Результаты загружены для {count_created} учеников."}
 
-
 @app.get("/demo/seed")
 async def seed_demo_data(db: Session = Depends(get_db)):
-    # Очищаем старые демо-данные
     db.query(Participation).delete()
     db.query(Olympiad).delete()
     db.query(User).filter(User.email.like("%school.ru%")).delete()
@@ -259,9 +246,35 @@ async def seed_demo_data(db: Session = Depends(get_db)):
     db.commit()
     return {"status": "ok", "message": "Demo data created successfully", "users_count": len(all_students)}
 
-
 @app.get("/")
 async def serve_index():
     static_path = os.path.join(os.path.dirname(__file__), "..", "frontend", "static")
     html_path = os.path.join(static_path, "index.html")
     return FileResponse(html_path)
+
+@app.post("/webhook")
+async def handle_webhook(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        return {"messages": [{"text": "Бот получил запрос, но не смог прочитать тело."}]}
+
+    message_text = body.get("message", {}).get("text", "")
+    response_text = f"Бот получил сообщение: {message_text}"
+
+    return {
+        "messages": [
+            {"text": response_text}
+        ]
+    }
+@app.get("/demo/students")
+async def list_demo_students(db: Session = Depends(get_db)):
+    students = db.query(User).filter(User.role == "student").all()
+    return [
+        {
+            "id": s.id,
+            "email": s.email,
+            "class_grade": s.class_grade
+        }
+        for s in students
+    ]
