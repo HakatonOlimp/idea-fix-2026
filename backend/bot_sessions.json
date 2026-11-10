@@ -1,0 +1,24 @@
+{
+  "4185841": {
+    "email": "pesnyaluda1981@yandex.ru",
+    "role": "teacher",
+    "class_grade": null,
+    "first_name": "Людмила",
+    "last_name": "Азараева",
+    "region": "Приморский край",
+    "district": "t:Уссурийский городской округ",
+    "city": "Кремово",
+    "school": "МБОУ СОШ с. Кремово"
+  },
+  "233879974": {
+    "email": "ze8931904@gmail.com",
+    "role": "student",
+    "class_grade": "8А",
+    "first_name": "Женя",
+    "last_name": "Евгений",
+    "region": "Приморский край",
+    "district": "t:_free",
+    "city": "с. Ляличи",
+    "school": "с. Ляличи"
+  }
+}
